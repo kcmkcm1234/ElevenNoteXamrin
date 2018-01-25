@@ -1,0 +1,138 @@
+using System;
+using System.Management.Instrumentation;
+using System.Web.Mvc;
+using StudyTimeHelper.Data;
+using StudyTimeHelper.Model;
+using StudyTimeHelper.Services;
+
+
+namespace StudyTimeHelper.WebMVC.Controllers
+{
+    [Authorize]
+    public class EventController : Controller
+    {
+        //private StudyTimeHelperDbContext db = new StudyTimeHelperDbContext();
+
+        //private readonly Lazy<IEvent> _eventService;
+
+        private IEvent EventService => _eventService.Value;
+
+        //public object ScheduleId { get; set; }
+
+        //public EventController()
+        //{
+        //    _eventService = new Lazy<IEvent>(() => new EventService(Guid.Parse(EventSchedule.GetEventById())));
+        //}
+
+
+        // GET: Event
+        public ActionResult Index()
+        {
+            var model = _eventService.Value.GetEvents();
+            return View(model);
+        }
+
+        // GET: EVENT/CREATE
+        public ActionResult Create() => View();
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Create(EventCreate model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            if (EventService.CreateEvent(model))
+            {
+                TempData["SaveResult"] = "Your event was created";
+                return RedirectToAction("Index");
+            }
+
+            ModelState.AddModelError("", "Your event could not be created");
+            return View(model);
+
+        }
+
+        
+        // GET: Event/Edit
+        public ActionResult Edit(int id)
+        {
+            var detail = EventService.GetEventById(id);
+
+            var model =
+                new EventEdit()
+                {
+                    EventId = detail.Eventid,
+                    EventName = detail.EventName,
+                    EventCategory = detail.Category,
+                    StartDate = detail.StartDate,
+                    EndDate = detail.EndDate,
+                    StartTime = detail.StartTime,
+                    EndTime = detail.EndTime,
+                    EventAllDay = detail.EventAllDay,
+
+                };
+
+            return View(model);
+
+
+        }
+
+        // POST: EVENT/EDIT
+        [HttpPost]
+        public ActionResult Edit(int id, EventEdit model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            if (model.EventId != id)
+            {
+                ModelState.AddModelError("", "Id Mismatch");
+                return View(model);
+            }
+
+            if (EventService.UpdateEvent(model))
+            {
+                TempData["SaveReslt"] = "Your event was updated";
+                return RedirectToAction("Index");
+            }
+
+            ModelState.AddModelError("", "Your event could not be updated");
+            return View(model);
+
+        }
+
+        // GET: EVENT/DETAIL
+        public ActionResult Details(int id)
+        {
+            var model = EventService(id);
+            return View(model);
+        }
+
+
+        // GET: EVENT/DELETE
+        public ActionResult Delete(int id)
+        {
+            var model = EventService.GetEventById(id);
+            return View(model);
+        }
+
+        // POST: EVENT/DELETE
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public ActionResult DeleteConfirmed(int id)
+        {
+            EventService.DeleteEvent(id);
+            TempData["SaveResult"] = " Your event has been deleted";
+            return RedirectToAction("Index");
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                db.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+    }
+
+}
